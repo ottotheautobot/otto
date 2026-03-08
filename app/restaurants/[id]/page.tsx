@@ -213,10 +213,27 @@ export default function RestaurantDetailPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Warning if release pattern unknown */}
+        {restaurant && (!restaurant.release_pattern || restaurant.release_pattern === 'unknown') && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-amber-900 font-medium mb-2">📋 Release Pattern Not Set</p>
+            <p className="text-sm text-amber-800 mb-3">
+              You need to research and set the release pattern before adding booking preferences. Go back and click "Research & Update" on the restaurant.
+            </p>
+            <button
+              onClick={() => router.push('/restaurants')}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded text-sm font-medium"
+            >
+              Back to Restaurants
+            </button>
+          </div>
+        )}
+
         <div className="mb-6">
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium"
+            disabled={!restaurant || !restaurant.release_pattern || restaurant.release_pattern === 'unknown'}
+            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg font-medium transition"
           >
             + Add Booking Preference
           </button>

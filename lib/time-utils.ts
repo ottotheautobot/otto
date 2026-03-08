@@ -53,7 +53,7 @@ export function formatDateRanges(dates: string[]): string {
   })
 
   // Group consecutive dates
-  const ranges: typeof parsedDates[][] = []
+  const ranges: Array<Array<{ year: number; month: number; day: number; dateStr: string }>> = []
   let currentRange = [parsedDates[0]]
 
   for (let i = 1; i < parsedDates.length; i++) {

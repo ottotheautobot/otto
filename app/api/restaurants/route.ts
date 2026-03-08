@@ -39,12 +39,12 @@ export async function POST(req: NextRequest) {
       .insert({
         name: body.name,
         resy_venue_id: body.resy_venue_id,
-        location: body.location,
-        release_pattern: body.release_pattern || 'daily',
-        release_day: body.release_day,
-        release_time: body.release_time,
+        location: body.location || null,
+        release_pattern: body.release_pattern || 'unknown',
+        release_day: body.release_day || null,
+        release_time: body.release_time || null,
         default_party_size: body.default_party_size || 2,
-        notes: body.notes,
+        notes: body.notes || null,
       })
       .select()
       .single()

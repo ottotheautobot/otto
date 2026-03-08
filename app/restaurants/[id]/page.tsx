@@ -200,7 +200,14 @@ export default function RestaurantDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{restaurant.name}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {restaurant.release_pattern} @ {format12Hour(restaurant.release_time)} ET • {restaurant.location}
+              {restaurant.release_pattern === 'unknown' ? (
+                '🔍 Release pattern not set'
+              ) : (
+                <>
+                  {restaurant.release_pattern} @ {restaurant.release_time ? format12Hour(restaurant.release_time) : '—'} ET
+                </>
+              )}
+              {restaurant.location && <> • {restaurant.location}</>}
             </p>
           </div>
           <button

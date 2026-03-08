@@ -8,8 +8,6 @@ export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [searching, setSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: '',
     resy_venue_id: '',
@@ -41,45 +39,6 @@ export default function RestaurantsPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  async function handleSearch(e: React.ChangeEvent<HTMLInputElement>) {
-    const query = e.target.value
-    setFormData({ ...formData, name: query })
-
-    if (query.length < 2) {
-      setSearchResults([])
-      return
-    }
-
-    setSearching(true)
-    try {
-      const response = await fetch(`/api/resy/search?q=${encodeURIComponent(query)}`)
-      const data = await response.json()
-      setSearchResults(data.venues || [])
-    } catch (error) {
-      console.error('Search error:', error)
-    } finally {
-      setSearching(false)
-    }
-  }
-
-  function selectVenue(venue: any) {
-    // Calculate earliest available date based on advance days
-    const today = new Date()
-    const earliestBooking = new Date(today)
-    earliestBooking.setDate(earliestBooking.getDate() + (venue.estimatedAdvanceDays || 30))
-
-    setFormData({
-      ...formData,
-      name: venue.name,
-      resy_venue_id: venue.id,
-      location: venue.location,
-      release_pattern: venue.estimatedReleasePattern || 'daily',
-      release_time: venue.estimatedReleaseTime || '10:00',
-    })
-    setSearchResults([])
-    setEarliestDate(earliestBooking.toISOString().split('T')[0])
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -151,54 +110,21 @@ export default function RestaurantsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Search Restaurant *
+                    Restaurant Name *
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={handleSearch}
-                      placeholder="Type restaurant name..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                    {searching && (
-                      <div className="absolute right-3 top-3 text-sm text-gray-500">
-                        Searching...
-                      </div>
-                    )}
-                    {searchResults.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg mt-1 z-10 max-h-48 overflow-y-auto">
-                        {searchResults.map((venue) => (
-                          <button
-                            key={venue.id}
-                            type="button"
-                            onClick={() => selectVenue(venue)}
-                            className="w-full text-left px-3 py-2 hover:bg-indigo-50 border-b last:border-b-0"
-                          >
-                            <div className="font-medium text-gray-900">{venue.name}</div>
-                            <div className="text-xs text-gray-500">
-                              {venue.location} • Earliest: {new Date(new Date().getTime() + (venue.estimatedAdvanceDays || 30) * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {formData.name && searchResults.length === 0 && !searching && (
-                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
-                        No results found. You can also manually enter the Resy venue ID below.
-                      </div>
-                    )}
-                  </div>
-                  {formData.resy_venue_id && (
-                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
-                      ✓ Found! Earliest reservation: <strong>{earliestDate}</strong>
-                    </div>
-                  )}
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Torrisi"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Or Enter Venue ID Manually
+                    Resy Venue ID *
                   </label>
                   <input
                     type="text"
@@ -213,11 +139,13 @@ export default function RestaurantsPage() {
                     }}
                     placeholder="e.g., 12345"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Find it in Resy URL: resy.com/cities/new-york-ny/venues/<strong>12345</strong>
+                    Find in URL: resy.com/cities/new-york-ny/venues/<strong>12345</strong>
                   </p>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Location
@@ -225,8 +153,9 @@ export default function RestaurantsPage() {
                   <input
                     type="text"
                     value={formData.location}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g., Manhattan"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -234,13 +163,13 @@ export default function RestaurantsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-blue-50 border border-blue-200 rounded">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Release Pattern (Auto-detected)
+                    Release Pattern
                   </label>
                   <div className="text-sm font-medium text-gray-900">{formData.release_pattern}</div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Release Time (Auto-detected)
+                    Release Time
                   </label>
                   <div className="text-sm font-medium text-gray-900">{formData.release_time} ET</div>
                 </div>
@@ -248,7 +177,7 @@ export default function RestaurantsPage() {
                   <label className="block text-xs font-medium text-gray-600 mb-1">
                     Earliest Reservation
                   </label>
-                  <div className="text-sm font-medium text-green-700">{earliestDate}</div>
+                  <div className="text-sm font-medium text-green-700">{earliestDate || '—'}</div>
                 </div>
               </div>
 
@@ -260,7 +189,8 @@ export default function RestaurantsPage() {
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  rows={3}
+                  rows={2}
+                  placeholder="e.g., Booking preferences, special notes..."
                 />
               </div>
 
@@ -268,6 +198,7 @@ export default function RestaurantsPage() {
                 <button
                   type="submit"
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition"
+                  disabled={!formData.name || !formData.resy_venue_id}
                 >
                   Add Restaurant
                 </button>
@@ -285,8 +216,8 @@ export default function RestaurantsPage() {
 
         {/* Restaurants List */}
         {restaurants.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No restaurants added yet.</p>
+          <div className="text-center py-12 bg-white rounded-lg">
+            <p className="text-gray-500 text-lg">No restaurants yet.</p>
             <button
               onClick={() => setShowForm(true)}
               className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg"
@@ -299,48 +230,49 @@ export default function RestaurantsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Location
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Release
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200">
                 {restaurants.map((restaurant) => (
                   <tr key={restaurant.id}>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                      {restaurant.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {restaurant.location || '—'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{restaurant.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{restaurant.location || '—'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
                       {restaurant.release_pattern} @ {restaurant.release_time}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        restaurant.enabled 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {restaurant.enabled ? 'Active' : 'Inactive'}
+                    <td className="px-6 py-4 text-sm">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          restaurant.enabled
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {restaurant.enabled ? 'Enabled' : 'Disabled'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <a href={`/restaurants/${restaurant.id}`} className="text-indigo-600 hover:text-indigo-900">
-                        Edit
-                      </a>
+                    <td className="px-6 py-4 text-sm">
+                      <button
+                        onClick={() => router.push(`/restaurants/${restaurant.id}`)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-medium"
+                      >
+                        Manage
+                      </button>
                     </td>
                   </tr>
                 ))}

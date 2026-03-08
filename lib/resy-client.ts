@@ -1,12 +1,5 @@
 const RESY_API_BASE = 'https://api.resy.com/3'
 
-export interface ResyVenue {
-  id: string
-  name: string
-  location: string
-  releasePattern?: string
-}
-
 interface ResyAvailability {
   date: string
   slots: ResySlot[]
@@ -32,64 +25,6 @@ export class ResyClient {
   constructor(apiKey: string, authToken: string) {
     this.apiKey = apiKey
     this.authToken = authToken
-  }
-
-  async searchVenues(query: string, location = 'New York'): Promise<ResyVenue[]> {
-    try {
-      const response = await fetch(
-        `${RESY_API_BASE}/find?query=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}`,
-        {
-          method: 'GET',
-          headers: {
-            'authorization': `Bearer ${this.apiKey}`,
-            'x-resy-auth-token': this.authToken,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(`Resy search failed: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      const venues = (data.results?.venues || []).map((v: any) => ({
-        id: v.id,
-        name: v.name,
-        location: v.location?.name || location,
-      }))
-
-      return venues
-    } catch (error) {
-      console.error('ResyClient.searchVenues error:', error)
-      throw error
-    }
-  }
-
-  async getVenueDetails(venueId: string): Promise<any> {
-    try {
-      const response = await fetch(
-        `${RESY_API_BASE}/venue/${venueId}`,
-        {
-          method: 'GET',
-          headers: {
-            'authorization': `Bearer ${this.apiKey}`,
-            'x-resy-auth-token': this.authToken,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch venue details: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      return data
-    } catch (error) {
-      console.error('ResyClient.getVenueDetails error:', error)
-      throw error
-    }
   }
 
   async findAvailability(venueId: string, date: string, partySize: number) {

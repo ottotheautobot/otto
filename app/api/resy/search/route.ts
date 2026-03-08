@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ResyClient } from '@/lib/resy-client'
 
 const RESY_API_KEY = process.env.RESY_API_KEY!
 const RESY_AUTH_TOKEN = process.env.RESY_AUTH_TOKEN!
@@ -8,34 +7,45 @@ export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams
     const query = searchParams.get('q')
-    const location = searchParams.get('location') || 'New York'
 
-    if (!query) {
-      return NextResponse.json(
-        { error: 'q (query) required' },
-        { status: 400 }
-      )
+    if (!query || query.length < 2) {
+      return NextResponse.json({ venues: [] })
     }
 
-    const resy = new ResyClient(RESY_API_KEY, RESY_AUTH_TOKEN)
-    const venues = await resy.searchVenues(query, location)
+    // Direct Resy API search
+    const response = await fetch(
+      `https://api.resy.com/3/find?query=${encodeURIComponent(query)}&location=new%20york`,
+      {
+        method: 'GET',
+        headers: {
+          'authorization': `Bearer ${RESY_API_KEY}`,
+          'x-resy-auth-token': RESY_AUTH_TOKEN,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0',
+        },
+      }
+    )
 
-    // Enrich with details (release pattern detection will be on frontend)
-    const enriched = venues.map((v) => ({
-      ...v,
-      // Release pattern detection: most NYC restaurants do 30 days daily at 10am
-      // This is a default; frontend can show options
-      estimatedReleasePattern: 'daily',
-      estimatedReleaseTime: '10:00',
-      estimatedAdvanceDays: 30,
-    }))
+    if (!response.ok) {
+      console.error(`Resy search HTTP ${response.status}:`, await response.text())
+      return NextResponse.json({ venues: [] })
+    }
 
-    return NextResponse.json({ venues: enriched })
+    const data = await response.json()
+    const venues = (data.results?.venues || [])
+      .slice(0, 8) // Limit to 8 results
+      .map((v: any) => ({
+        id: v.id?.toString() || v.id,
+        name: v.name,
+        location: v.location?.name || 'New York',
+        estimatedReleasePattern: 'daily',
+        estimatedReleaseTime: '10:00',
+        estimatedAdvanceDays: 30,
+      }))
+
+    return NextResponse.json({ venues })
   } catch (error) {
     console.error('Resy search error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Search failed' },
-      { status: 500 }
-    )
+    return NextResponse.json({ venues: [], error: error instanceof Error ? error.message : 'Search unavailable' })
   }
 }

@@ -183,12 +183,40 @@ export default function RestaurantsPage() {
                         ))}
                       </div>
                     )}
+                    {formData.name && searchResults.length === 0 && !searching && (
+                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+                        No results found. You can also manually enter the Resy venue ID below.
+                      </div>
+                    )}
                   </div>
                   {formData.resy_venue_id && (
                     <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
                       ✓ Found! Earliest reservation: <strong>{earliestDate}</strong>
                     </div>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Or Enter Venue ID Manually
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.resy_venue_id}
+                    onChange={(e) => {
+                      setFormData({ ...formData, resy_venue_id: e.target.value })
+                      if (e.target.value && !earliestDate) {
+                        const futureDate = new Date()
+                        futureDate.setDate(futureDate.getDate() + 30)
+                        setEarliestDate(futureDate.toISOString().split('T')[0])
+                      }
+                    }}
+                    placeholder="e.g., 12345"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Find it in Resy URL: resy.com/cities/new-york-ny/venues/<strong>12345</strong>
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

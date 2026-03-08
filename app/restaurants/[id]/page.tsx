@@ -338,14 +338,17 @@ export default function RestaurantDetailPage() {
                   </label>
                   <input
                     type="time"
-                    value={(formData.preferred_times as any).start || '19:00'}
+                    value={(formData.preferred_times as any)?.start ?? '19:00'}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        preferred_times: { ...formData.preferred_times, start: e.target.value },
+                        preferred_times: { 
+                          ...(formData.preferred_times as any),
+                          start: e.target.value 
+                        },
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -355,14 +358,17 @@ export default function RestaurantDetailPage() {
                   </label>
                   <input
                     type="time"
-                    value={(formData.preferred_times as any).end || '21:30'}
+                    value={(formData.preferred_times as any)?.end ?? '21:30'}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        preferred_times: { ...formData.preferred_times, end: e.target.value },
+                        preferred_times: { 
+                          ...(formData.preferred_times as any),
+                          end: e.target.value 
+                        },
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 

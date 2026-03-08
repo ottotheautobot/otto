@@ -74,17 +74,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Navigation Buttons */}
+        <div className="mb-8 flex gap-3">
+          <button
+            onClick={() => router.push('/restaurants')}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium"
+          >
+            + Manage Restaurants
+          </button>
+          <button
+            onClick={() => router.push('/test')}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium"
+          >
+            🧪 Test Booking
+          </button>
+        </div>
+
         {/* Restaurants Section */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Your Restaurants</h2>
-            <button
-              onClick={() => router.push('/restaurants')}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium"
-            >
-              + Manage Restaurants
-            </button>
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Restaurants</h2>
 
           {restaurants.length === 0 ? (
             <div className="bg-white p-8 rounded-lg shadow text-center">

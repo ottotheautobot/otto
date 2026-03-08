@@ -18,7 +18,7 @@ export interface Restaurant {
   resy_venue_id: string
   location?: string
   enabled: boolean
-  release_pattern: 'daily' | 'weekly' | 'manual'
+  release_pattern: 'daily' | 'weekly' | 'manual' | 'unknown'
   release_day?: string
   release_time?: string
   release_frequency_days?: number

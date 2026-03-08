@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { format12Hour } from '@/lib/time-utils'
 import type { Restaurant, BookingPreference } from '@/lib/supabase'
 
 export default function RestaurantDetailPage() {
@@ -199,7 +200,7 @@ export default function RestaurantDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{restaurant.name}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {restaurant.release_pattern} @ {restaurant.release_time} ET • {restaurant.location}
+              {restaurant.release_pattern} @ {format12Hour(restaurant.release_time)} ET • {restaurant.location}
             </p>
           </div>
           <button
@@ -403,8 +404,8 @@ export default function RestaurantDetailPage() {
                   <p className="text-sm font-medium text-blue-900 mb-2">Preview</p>
                   <p className="text-sm text-blue-800">
                     The bot will try to book a table for <strong>{formData.party_size}</strong> between{' '}
-                    <strong>{(formData.preferred_times as any).start}</strong> and{' '}
-                    <strong>{(formData.preferred_times as any).end}</strong> on{' '}
+                    <strong>{format12Hour((formData.preferred_times as any).start)}</strong> and{' '}
+                    <strong>{format12Hour((formData.preferred_times as any).end)}</strong> on{' '}
                     <strong>{selectedDates.size === 0 ? '0' : selectedDates.size}</strong> date
                     {selectedDates.size !== 1 ? 's' : ''} (books earliest available)
                   </p>
@@ -466,7 +467,7 @@ export default function RestaurantDetailPage() {
                     <div>
                       <p className="text-xs text-gray-600 font-medium">Time Range</p>
                       <p className="text-lg font-bold text-gray-900">
-                        {(pref.preferred_times as any)?.start || '—'} – {(pref.preferred_times as any)?.end || '—'}
+                        {format12Hour((pref.preferred_times as any)?.start) || '—'} – {format12Hour((pref.preferred_times as any)?.end) || '—'}
                       </p>
                     </div>
                     <div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { format12Hour } from '@/lib/time-utils'
 import type { ActivityLog } from '@/lib/supabase'
 
 export default function ActivityPage() {
@@ -100,7 +101,16 @@ export default function ActivityPage() {
                       {new Date(activity.created_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {activity.target_date && `${activity.target_date} ${activity.target_time}`}
+                      {activity.target_date && (
+                        <>
+                          {activity.target_date}{' '}
+                          {activity.target_time && (
+                            activity.target_time.includes('-') 
+                              ? activity.target_time.split('-').map((t: string) => format12Hour(t.trim())).join(' - ')
+                              : format12Hour(activity.target_time)
+                          )}
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

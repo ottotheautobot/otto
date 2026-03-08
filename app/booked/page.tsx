@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { format12Hour } from '@/lib/time-utils'
 
 export default function BookedPage() {
   const [bookings, setBookings] = useState<any[]>([])
@@ -86,7 +87,7 @@ export default function BookedPage() {
                       {new Date(booking.booked_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {booking.booked_time}
+                      {format12Hour(booking.booked_time)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {booking.party_size}

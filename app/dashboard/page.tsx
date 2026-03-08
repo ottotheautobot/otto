@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { format12Hour } from '@/lib/time-utils'
 import type { Restaurant, BookingPreference } from '@/lib/supabase'
 
 export default function DashboardPage() {
@@ -107,7 +108,7 @@ export default function DashboardPage() {
                     <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
                       <p className="text-xs font-medium text-gray-700">Release Pattern</p>
                       <p className="text-sm font-bold text-gray-900">
-                        {restaurant.release_pattern} @ {restaurant.release_time} ET
+                        {restaurant.release_pattern} @ {format12Hour(restaurant.release_time)} ET
                       </p>
                     </div>
 
@@ -121,7 +122,7 @@ export default function DashboardPage() {
                           {(preferences[restaurant.id] || []).map((pref) => (
                             <div key={pref.id} className="text-xs bg-green-50 p-2 rounded border border-green-200">
                               <div className="font-medium text-green-900">
-                                Party of {pref.party_size} @ {(pref.preferred_times as any)?.start || '—'}–{(pref.preferred_times as any)?.end || '—'}
+                                Party of {pref.party_size} @ {format12Hour((pref.preferred_times as any)?.start) || '—'}–{format12Hour((pref.preferred_times as any)?.end) || '—'}
                               </div>
                               <div className="text-green-700 text-xs mt-1">
                                 {pref.target_dates?.length || 0} date{pref.target_dates?.length !== 1 ? 's' : ''}

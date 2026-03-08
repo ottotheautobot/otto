@@ -1,0 +1,13 @@
+node_modules
+.next
+dist
+out
+.DS_Store
+*.pem
+.env.local
+.env*.local
+.vercel
+.idea
+*.swp
+*.swo
+.vscode

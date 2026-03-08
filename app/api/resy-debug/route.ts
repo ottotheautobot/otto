@@ -146,10 +146,32 @@ export async function GET(req: NextRequest) {
     }
   )
 
-  // Test 7: /3/find endpoint (old format)
+  // Test 7: /3/find endpoint (with 0,0)
   await testEndpoint(
-    'Test 7: /3/find with ResyAPI auth',
+    'Test 7: /3/find with lat=0, long=0',
     `https://api.resy.com/3/find?lat=0&long=0&day=${date}&party_size=${partySize}&venue_id=${venueId}`,
+    {
+      'Authorization': `ResyAPI api_key="${RESY_API_KEY}"`,
+      'x-resy-auth-token': RESY_AUTH_TOKEN,
+      'Content-Type': 'application/json',
+    }
+  )
+
+  // Test 8: /3/find with NYC coordinates
+  await testEndpoint(
+    'Test 8: /3/find with NYC coords (40.7128, -74.0060)',
+    `https://api.resy.com/3/find?lat=40.7128&long=-74.0060&day=${date}&party_size=${partySize}&venue_id=${venueId}`,
+    {
+      'Authorization': `ResyAPI api_key="${RESY_API_KEY}"`,
+      'x-resy-auth-token': RESY_AUTH_TOKEN,
+      'Content-Type': 'application/json',
+    }
+  )
+
+  // Test 9: /3/find without lat/long
+  await testEndpoint(
+    'Test 9: /3/find WITHOUT lat/long params',
+    `https://api.resy.com/3/find?day=${date}&party_size=${partySize}&venue_id=${venueId}`,
     {
       'Authorization': `ResyAPI api_key="${RESY_API_KEY}"`,
       'x-resy-auth-token': RESY_AUTH_TOKEN,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { format12Hour } from '@/lib/time-utils'
+import { format12Hour, formatDateRanges } from '@/lib/time-utils'
 import type { Restaurant, BookingPreference } from '@/lib/supabase'
 
 export default function RestaurantDetailPage() {
@@ -299,18 +299,12 @@ export default function RestaurantDetailPage() {
               {/* Selected dates preview */}
               {selectedDates.size > 0 && (
                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-                  <p className="text-sm font-medium text-green-900 mb-2">
+                  <p className="text-sm font-medium text-green-900 mb-1">
                     Selected: {selectedDates.size} date{selectedDates.size !== 1 ? 's' : ''}
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from(selectedDates)
-                      .sort()
-                      .map((date) => (
-                        <span key={date} className="bg-green-200 text-green-900 px-2 py-1 rounded text-xs font-medium">
-                          {new Date(date).toLocaleDateString()}
-                        </span>
-                      ))}
-                  </div>
+                  <p className="text-sm text-green-800 font-medium">
+                    {formatDateRanges(Array.from(selectedDates))}
+                  </p>
                 </div>
               )}
             </div>
@@ -484,13 +478,9 @@ export default function RestaurantDetailPage() {
                   {pref.target_dates && pref.target_dates.length > 0 && (
                     <div className="mt-3 pt-3 border-t">
                       <p className="text-xs font-medium text-gray-600 mb-2">Dates</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(pref.target_dates as string[]).sort().map((date) => (
-                          <span key={date} className="bg-indigo-100 text-indigo-900 px-2 py-1 rounded text-xs">
-                            {new Date(date).toLocaleDateString()}
-                          </span>
-                        ))}
-                      </div>
+                      <p className="text-sm text-indigo-900 font-medium">
+                        {formatDateRanges(pref.target_dates as string[])}
+                      </p>
                     </div>
                   )}
 

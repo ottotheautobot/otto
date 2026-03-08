@@ -121,7 +121,7 @@ export default function DashboardPage() {
                           {(preferences[restaurant.id] || []).map((pref) => (
                             <div key={pref.id} className="text-xs bg-green-50 p-2 rounded border border-green-200">
                               <div className="font-medium text-green-900">
-                                Party of {pref.party_size} @ {(pref.preferred_times as any)?.exact || 'any time'}
+                                Party of {pref.party_size} @ {(pref.preferred_times as any)?.start || '—'}–{(pref.preferred_times as any)?.end || '—'}
                               </div>
                               <div className="text-green-700 text-xs mt-1">
                                 {pref.target_dates?.length || 0} date{pref.target_dates?.length !== 1 ? 's' : ''}

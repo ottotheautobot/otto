@@ -12,7 +12,7 @@ export default function RestaurantDetailPage() {
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set())
   const [formData, setFormData] = useState({
     party_size: 2,
-    preferred_times: { exact: '19:00' },
+    preferred_times: { start: '19:00', end: '21:30' },
     priority: 5,
     notes: '',
   })
@@ -124,7 +124,7 @@ export default function RestaurantDetailPage() {
       setSelectedDates(new Set())
       setFormData({
         party_size: 2,
-        preferred_times: { exact: '19:00' },
+        preferred_times: { start: '19:00', end: '21:30' },
         priority: 5,
         notes: '',
       })
@@ -278,15 +278,32 @@ export default function RestaurantDetailPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Preferred Time
+                    Earliest Preferred Time
                   </label>
                   <input
                     type="time"
-                    value={(formData.preferred_times as any).exact || '19:00'}
+                    value={(formData.preferred_times as any).start || '19:00'}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        preferred_times: { exact: e.target.value },
+                        preferred_times: { ...formData.preferred_times, start: e.target.value },
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Latest Preferred Time
+                  </label>
+                  <input
+                    type="time"
+                    value={(formData.preferred_times as any).end || '21:30'}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        preferred_times: { ...formData.preferred_times, end: e.target.value },
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -323,10 +340,11 @@ export default function RestaurantDetailPage() {
                 <div className="bg-blue-50 p-3 rounded border border-blue-200">
                   <p className="text-sm font-medium text-blue-900 mb-2">Preview</p>
                   <p className="text-sm text-blue-800">
-                    The bot will try to book a table for <strong>{formData.party_size}</strong> at{' '}
-                    <strong>{formData.preferred_times.exact}</strong> on{' '}
+                    The bot will try to book a table for <strong>{formData.party_size}</strong> between{' '}
+                    <strong>{(formData.preferred_times as any).start}</strong> and{' '}
+                    <strong>{(formData.preferred_times as any).end}</strong> on{' '}
                     <strong>{selectedDates.size === 0 ? '0' : selectedDates.size}</strong> date
-                    {selectedDates.size !== 1 ? 's' : ''}
+                    {selectedDates.size !== 1 ? 's' : ''} (books earliest available)
                   </p>
                 </div>
 
@@ -374,9 +392,9 @@ export default function RestaurantDetailPage() {
                       <p className="text-lg font-bold text-gray-900">{pref.party_size}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 font-medium">Preferred Time</p>
+                      <p className="text-xs text-gray-600 font-medium">Time Range</p>
                       <p className="text-lg font-bold text-gray-900">
-                        {(pref.preferred_times as any)?.exact || '—'}
+                        {(pref.preferred_times as any)?.start || '—'} – {(pref.preferred_times as any)?.end || '—'}
                       </p>
                     </div>
                     <div>

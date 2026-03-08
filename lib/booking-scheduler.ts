@@ -56,9 +56,11 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
       for (const pref of prefs as BookingPreference[]) {
         // Check if target dates include today or within next 30 days
         const targetDates = pref.target_dates || []
+        const timeRange = pref.preferred_times as any
+        const startTime = timeRange?.start || '17:00' // Default 5pm
+        const endTime = timeRange?.end || '22:00' // Default 10pm
         
         for (const targetDate of targetDates) {
-          const preferredTime = (pref.preferred_times as any)?.exact || '19:00'
           
           try {
             // Log attempt
@@ -67,9 +69,9 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
               booking_preference_id: pref.id,
               action: 'booking_attempted',
               target_date: targetDate,
-              target_time: preferredTime,
+              target_time: `${startTime}-${endTime}`,
               status: 'pending',
-              details: { partySize: pref.party_size },
+              details: { partySize: pref.party_size, timeRange: { start: startTime, end: endTime } },
             })
 
             // Try to find availability
@@ -87,38 +89,46 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 action: 'release_detected',
                 target_date: targetDate,
                 status: 'failed',
-                details: { reason: 'No availability at preferred time' },
+                details: { reason: 'No availability in time range' },
               })
 
               attempts.push({
                 restaurantId: restaurant.id,
                 restaurantName: restaurant.name,
                 date: targetDate,
-                time: preferredTime,
+                time: `${startTime}-${endTime}`,
                 partySize: pref.party_size,
                 success: false,
-                message: 'No availability',
+                message: 'No availability in range',
               })
               continue
             }
 
-            // Find slot closest to preferred time
-            const slot = availability.slots.find((s: any) => s.time === preferredTime)
+            // Find earliest slot within preferred time range
+            const slotsInRange = availability.slots
+              .filter((s: any) => {
+                const slotTime = s.time // Format: HH:MM
+                return slotTime >= startTime && slotTime <= endTime
+              })
+              .sort((a: any, b: any) => a.time.localeCompare(b.time))
+
+            const slot = slotsInRange[0]
             
             if (!slot) {
               attempts.push({
                 restaurantId: restaurant.id,
                 restaurantName: restaurant.name,
                 date: targetDate,
-                time: preferredTime,
+                time: `${startTime}-${endTime}`,
                 partySize: pref.party_size,
                 success: false,
-                message: 'Preferred time not available',
+                message: 'No availability in preferred time range',
               })
               continue
             }
 
             // Attempt booking
+            const bookedTime = slot.time
             const booking = await resy.bookReservation(
               slot.id,
               restaurant.resy_venue_id,
@@ -135,7 +145,7 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 booking_preference_id: pref.id,
                 resy_booking_id: booking.id,
                 booked_date: targetDate,
-                booked_time: preferredTime,
+                booked_time: bookedTime,
                 party_size: pref.party_size,
                 resy_confirmation_url: `https://resy.com/reservations/${booking.id}`,
                 status: 'confirmed',
@@ -146,19 +156,19 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 booking_preference_id: pref.id,
                 action: 'success',
                 target_date: targetDate,
-                target_time: preferredTime,
+                target_time: bookedTime,
                 status: 'success',
-                details: { bookingId: booking.id },
+                details: { bookingId: booking.id, preferredRange: { start: startTime, end: endTime } },
               })
 
               attempts.push({
                 restaurantId: restaurant.id,
                 restaurantName: restaurant.name,
                 date: targetDate,
-                time: preferredTime,
+                time: bookedTime,
                 partySize: pref.party_size,
                 success: true,
-                message: `Booked! Confirmation: ${booking.id}`,
+                message: `Booked at ${bookedTime}! Range was ${startTime}-${endTime}`,
               })
             }
           } catch (error: any) {
@@ -173,7 +183,7 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
               booking_preference_id: pref.id,
               action: status,
               target_date: targetDate,
-              target_time: preferredTime,
+              target_time: `${startTime}-${endTime}`,
               status: 'failed',
               details: { error: error.message },
             })
@@ -182,7 +192,7 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
               restaurantId: restaurant.id,
               restaurantName: restaurant.name,
               date: targetDate,
-              time: preferredTime,
+              time: `${startTime}-${endTime}`,
               partySize: pref.party_size,
               success: false,
               message: error.message,

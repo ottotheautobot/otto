@@ -43,9 +43,9 @@ export class ResyClient {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
+          'Authorization': `ResyAPI api_key="${this.apiKey}"`,
           'x-resy-auth-token': this.authToken,
           'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0',
         },
       })
 

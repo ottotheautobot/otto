@@ -151,7 +151,6 @@ export default function RestaurantsPage() {
                     placeholder="e.g., Torrisi"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     required
-                    disabled={!!editingId}
                   />
                 </div>
 
@@ -166,7 +165,6 @@ export default function RestaurantsPage() {
                     placeholder="e.g., 12345"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     required
-                    disabled={!!editingId}
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Find in URL: resy.com/cities/new-york-ny/venues/<strong>12345</strong>

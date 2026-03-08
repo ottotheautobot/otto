@@ -11,11 +11,13 @@ export async function PATCH(
     const { data, error } = await supabase
       .from('restaurants')
       .update({
+        name: body.name,
+        resy_venue_id: body.resy_venue_id,
+        location: body.location || null,
         release_pattern: body.release_pattern,
         release_day: body.release_day || null,
         release_time: body.release_time || null,
-        location: body.location,
-        notes: body.notes,
+        notes: body.notes || null,
       })
       .eq('id', params.id)
       .select()

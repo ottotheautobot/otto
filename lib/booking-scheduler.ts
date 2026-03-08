@@ -1,5 +1,6 @@
 import { supabase, Restaurant, BookingPreference } from './supabase'
 import { ResyClient } from './resy-client'
+import { PlaywrightBooker } from './playwright-booker'
 
 const RESY_API_KEY = process.env.RESY_API_KEY!
 const RESY_AUTH_TOKEN = process.env.RESY_AUTH_TOKEN!
@@ -81,15 +82,15 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
               pref.party_size
             )
 
-            if (!availability || !availability.slots || availability.slots.length === 0) {
+            if (!availability.available || !availability.slots || availability.slots.length === 0) {
               // No availability
               await supabase.from('activity_log').insert({
                 restaurant_id: restaurant.id,
                 booking_preference_id: pref.id,
-                action: 'release_detected',
+                action: 'checked',
                 target_date: targetDate,
-                status: 'failed',
-                details: { reason: 'No availability in time range' },
+                status: 'no_availability',
+                details: { reason: 'No availability found' },
               })
 
               attempts.push({
@@ -99,55 +100,42 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 time: `${startTime}-${endTime}`,
                 partySize: pref.party_size,
                 success: false,
-                message: 'No availability in range',
+                message: 'No availability',
               })
               continue
             }
 
-            // Find earliest slot within preferred time range
-            const slotsInRange = availability.slots
-              .filter((s: any) => {
-                const slotTime = s.time // Format: HH:MM
-                return slotTime >= startTime && slotTime <= endTime
-              })
-              .sort((a: any, b: any) => a.time.localeCompare(b.time))
+            // Found availability! Use Playwright to automate booking
+            const booker = new PlaywrightBooker()
+            await booker.initialize()
 
-            const slot = slotsInRange[0]
-            
-            if (!slot) {
-              attempts.push({
-                restaurantId: restaurant.id,
-                restaurantName: restaurant.name,
-                date: targetDate,
-                time: `${startTime}-${endTime}`,
-                partySize: pref.party_size,
-                success: false,
-                message: 'No availability in preferred time range',
-              })
-              continue
-            }
+            // Extract time from notify_options
+            const notifyOpt = availability.slots[0]
+            const minTime = notifyOpt.min_time // Format: "2026-03-17 16:30:00"
+            const timeMatch = minTime.match(/(\d{2}):(\d{2}):00/)
+            const timeSlot = timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : '19:00'
 
-            // Attempt booking
-            const bookedTime = slot.time
-            const booking = await resy.bookReservation(
-              slot.id,
-              restaurant.resy_venue_id,
-              pref.party_size,
-              'guest@example.com', // Placeholder - should come from user prefs
-              'Guest',
-              'User'
-            )
+            const bookingResult = await booker.bookReservation({
+              venueId: restaurant.resy_venue_id,
+              date: targetDate,
+              partySize: pref.party_size,
+              timeSlot: timeSlot,
+              firstName: 'Guest',
+              lastName: 'User',
+              email: 'guest@example.com', // Placeholder
+            })
 
-            if (booking && booking.id) {
+            await booker.close()
+
+            if (bookingResult.success && bookingResult.reservationId) {
               // Success!
               await supabase.from('booked_confirmations').insert({
                 restaurant_id: restaurant.id,
                 booking_preference_id: pref.id,
-                resy_booking_id: booking.id,
+                resy_booking_id: bookingResult.reservationId,
                 booked_date: targetDate,
-                booked_time: bookedTime,
+                booked_time: timeSlot,
                 party_size: pref.party_size,
-                resy_confirmation_url: `https://resy.com/reservations/${booking.id}`,
                 status: 'confirmed',
               })
 
@@ -156,19 +144,29 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 booking_preference_id: pref.id,
                 action: 'success',
                 target_date: targetDate,
-                target_time: bookedTime,
+                target_time: timeSlot,
                 status: 'success',
-                details: { bookingId: booking.id, preferredRange: { start: startTime, end: endTime } },
+                details: { bookingId: bookingResult.reservationId },
               })
 
               attempts.push({
                 restaurantId: restaurant.id,
                 restaurantName: restaurant.name,
                 date: targetDate,
-                time: bookedTime,
+                time: timeSlot,
                 partySize: pref.party_size,
                 success: true,
-                message: `Booked at ${bookedTime}! Range was ${startTime}-${endTime}`,
+                message: `Booked at ${timeSlot}!`,
+              })
+            } else {
+              attempts.push({
+                restaurantId: restaurant.id,
+                restaurantName: restaurant.name,
+                date: targetDate,
+                time: timeSlot,
+                partySize: pref.party_size,
+                success: false,
+                message: bookingResult.error || 'Booking failed',
               })
             }
           } catch (error: any) {

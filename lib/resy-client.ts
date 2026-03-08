@@ -61,14 +61,18 @@ export class ResyClient {
       // Extract available times from notify_options
       if (data.results?.venues?.[0]?.venue?.notify_options) {
         const options = data.results.venues[0].venue.notify_options
-        return options.map((opt: any) => ({
-          min_time: opt.min_request_datetime,
-          max_time: opt.max_request_datetime,
-          step_minutes: opt.step_minutes,
-        }))
+        return {
+          available: true,
+          slots: options.map((opt: any) => ({
+            min_time: opt.min_request_datetime,
+            max_time: opt.max_request_datetime,
+            step_minutes: opt.step_minutes,
+          })),
+          venue: data.results.venues[0].venue,
+        }
       }
       
-      return []
+      return { available: false, slots: [] }
     } catch (error) {
       console.error('ResyClient.findAvailability error:', error)
       throw error

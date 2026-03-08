@@ -35,7 +35,6 @@ export class ResyClient {
         day: date,
         party_size: partySize.toString(),
         venue_id: venueId,
-        resy_token: this.authToken,
       })
       
       const url = `${RESY_API_BASE}/4/find?${params.toString()}`
@@ -44,9 +43,9 @@ export class ResyClient {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'authorization': `Bearer ${this.apiKey}`,
           'x-resy-auth-token': this.authToken,
           'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0',
         },
       })
 

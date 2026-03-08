@@ -215,7 +215,7 @@ export default function RestaurantsPage() {
                       value={formData.release_day}
                       onChange={(e) => setFormData({ ...formData, release_day: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      disabled={formData.release_pattern !== 'weekly'}
+                      disabled={formData.release_pattern === 'unknown' || formData.release_pattern === 'daily' || formData.release_pattern === 'manual'}
                     >
                       <option value="">—</option>
                       <option value="Monday">Monday</option>

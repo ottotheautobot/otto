@@ -115,9 +115,13 @@ export default function DashboardPage() {
                     {/* Release Info */}
                     <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
                       <p className="text-xs font-medium text-gray-700">Release Pattern</p>
-                      <p className="text-sm font-bold text-gray-900">
-                        {restaurant.release_pattern} @ {format12Hour(restaurant.release_time)} ET
-                      </p>
+                      {!restaurant.release_pattern || restaurant.release_pattern === 'unknown' ? (
+                        <p className="text-sm font-bold text-amber-700">🔍 Research needed</p>
+                      ) : (
+                        <p className="text-sm font-bold text-gray-900">
+                          {restaurant.release_pattern} @ {restaurant.release_time ? format12Hour(restaurant.release_time) : '—'} ET
+                        </p>
+                      )}
                     </div>
 
                     {/* Preferences Summary */}

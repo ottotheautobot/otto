@@ -29,23 +29,22 @@ export class ResyClient {
 
   async findAvailability(venueId: string, date: string, partySize: number) {
     try {
-      const params = new URLSearchParams({
-        lat: '0',
-        long: '0',
-        day: date,
-        party_size: partySize.toString(),
-        venue_id: venueId,
-      })
-      
-      const url = `${RESY_API_BASE}/find?${params.toString()}`
+      const url = `${RESY_API_BASE}/find`
       
       const response = await fetch(url, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Authorization': `ResyAPI api_key="${this.apiKey}"`,
           'x-resy-auth-token': this.authToken,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          lat: 0,
+          long: 0,
+          day: date,
+          party_size: partySize,
+          venue_id: venueId,
+        }),
       })
 
       if (response.status === 429) {
@@ -58,7 +57,18 @@ export class ResyClient {
       }
 
       const data = await response.json()
-      return data.results || []
+      
+      // Extract available times from notify_options
+      if (data.results?.venues?.[0]?.venue?.notify_options) {
+        const options = data.results.venues[0].venue.notify_options
+        return options.map((opt: any) => ({
+          min_time: opt.min_request_datetime,
+          max_time: opt.max_request_datetime,
+          step_minutes: opt.step_minutes,
+        }))
+      }
+      
+      return []
     } catch (error) {
       console.error('ResyClient.findAvailability error:', error)
       throw error

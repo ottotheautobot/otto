@@ -29,8 +29,17 @@ export class ResyClient {
 
   async findAvailability(venueId: string, date: string, partySize: number) {
     try {
-      const url = `${RESY_API_BASE}/venue/${venueId}/availability?date=${date}&party_size=${partySize}`
-      console.log('[Resy] Calling:', url)
+      const params = new URLSearchParams({
+        lat: '0',
+        long: '0',
+        day: date,
+        party_size: partySize.toString(),
+        venue_id: venueId,
+        resy_token: this.authToken,
+      })
+      
+      const url = `${RESY_API_BASE}/4/find?${params.toString()}`
+      console.log('[Resy] Calling findAvailability:', url.substring(0, 100) + '...')
       
       const response = await fetch(url, {
         method: 'GET',
@@ -54,6 +63,7 @@ export class ResyClient {
       }
 
       const data = await response.json()
+      console.log('[Resy] Got response, results count:', data.results?.length || 0)
       return data.results
     } catch (error) {
       console.error('ResyClient.findAvailability error:', error)

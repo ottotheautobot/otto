@@ -45,47 +45,53 @@ export function format24Hour(time12: string): string {
 export function formatDateRanges(dates: string[]): string {
   if (!dates || dates.length === 0) return ''
 
-  // Sort dates
-  const sorted = [...dates].sort()
+  // Sort and parse dates
+  const sortedDates = [...dates].sort()
+  const parsedDates = sortedDates.map((dateStr) => {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return { year, month, day, dateStr }
+  })
 
   // Group consecutive dates
-  const ranges: Array<{ start: Date; end: Date }> = []
-  let currentStart = new Date(sorted[0])
-  let currentEnd = new Date(sorted[0])
+  const ranges: typeof parsedDates[][] = []
+  let currentRange = [parsedDates[0]]
 
-  for (let i = 1; i < sorted.length; i++) {
-    const nextDate = new Date(sorted[i])
-    const nextDay = new Date(currentEnd)
+  for (let i = 1; i < parsedDates.length; i++) {
+    const prev = currentRange[currentRange.length - 1]
+    const curr = parsedDates[i]
+
+    // Check if consecutive
+    const prevDate = new Date(prev.year, prev.month - 1, prev.day)
+    const currDate = new Date(curr.year, curr.month - 1, curr.day)
+    const nextDay = new Date(prevDate)
     nextDay.setDate(nextDay.getDate() + 1)
 
-    if (nextDate.getTime() === nextDay.getTime()) {
-      // Consecutive, extend range
-      currentEnd = nextDate
+    if (currDate.getTime() === nextDay.getTime()) {
+      currentRange.push(curr)
     } else {
-      // Gap, save range and start new one
-      ranges.push({ start: currentStart, end: currentEnd })
-      currentStart = nextDate
-      currentEnd = nextDate
+      ranges.push(currentRange)
+      currentRange = [curr]
     }
   }
-  ranges.push({ start: currentStart, end: currentEnd })
+  ranges.push(currentRange)
 
   // Format ranges
   const formatted = ranges.map((range) => {
-    const startMonth = range.start.toLocaleDateString('en-US', { month: 'short' })
-    const startDay = range.start.getDate()
-    const endDay = range.end.getDate()
+    const start = range[0]
+    const end = range[range.length - 1]
 
-    if (range.start.getTime() === range.end.getTime()) {
-      // Single day
-      return `${startMonth} ${startDay}`
-    } else if (range.start.getMonth() === range.end.getMonth()) {
-      // Same month
-      return `${startMonth} ${startDay}-${endDay}`
+    const startDate = new Date(start.year, start.month - 1, start.day)
+    const endDate = new Date(end.year, end.month - 1, end.day)
+
+    const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' })
+    const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' })
+
+    if (range.length === 1) {
+      return `${startMonth} ${start.day}`
+    } else if (start.month === end.month) {
+      return `${startMonth} ${start.day}-${end.day}`
     } else {
-      // Different months
-      const endMonth = range.end.toLocaleDateString('en-US', { month: 'short' })
-      return `${startMonth} ${startDay} - ${endMonth} ${endDay}`
+      return `${startMonth} ${start.day} - ${endMonth} ${end.day}`
     }
   })
 

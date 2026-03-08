@@ -37,8 +37,7 @@ export class ResyClient {
         venue_id: venueId,
       })
       
-      const url = `${RESY_API_BASE}/4/find?${params.toString()}`
-      console.log('[Resy] Calling findAvailability:', url.substring(0, 100) + '...')
+      const url = `${RESY_API_BASE}/find?${params.toString()}`
       
       const response = await fetch(url, {
         method: 'GET',
@@ -49,21 +48,17 @@ export class ResyClient {
         },
       })
 
-      console.log('[Resy] Response status:', response.status)
-      
       if (response.status === 429) {
         throw new Error('RATE_LIMITED')
       }
 
       if (!response.ok) {
         const text = await response.text()
-        console.error('[Resy] Error response:', text.substring(0, 200))
         throw new Error(`Resy API Error (${response.status}): ${text.substring(0, 100)}`)
       }
 
       const data = await response.json()
-      console.log('[Resy] Got response, results count:', data.results?.length || 0)
-      return data.results
+      return data.results || []
     } catch (error) {
       console.error('ResyClient.findAvailability error:', error)
       throw error

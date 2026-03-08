@@ -25,6 +25,39 @@ export default function RestaurantDetailPage() {
   // Calendar state
   const [calendarMonth, setCalendarMonth] = useState(new Date())
 
+  // Calculate earliest available date based on release pattern
+  function getEarliestAvailableDate(): Date {
+    const today = new Date()
+    
+    if (!restaurant || !restaurant.release_pattern || restaurant.release_pattern === 'manual') {
+      // Manual: can book today onwards
+      return today
+    }
+    
+    if (restaurant.release_pattern === 'unknown') {
+      // Unknown: assume 30 days (conservative default)
+      const date = new Date(today)
+      date.setDate(date.getDate() + 30)
+      return date
+    }
+    
+    // Daily: typically 30 days advance (you can customize per restaurant later)
+    if (restaurant.release_pattern === 'daily') {
+      const date = new Date(today)
+      date.setDate(date.getDate() + 30)
+      return date
+    }
+    
+    // Weekly: depends on when they release, default to 7 days
+    if (restaurant.release_pattern === 'weekly') {
+      const date = new Date(today)
+      date.setDate(date.getDate() + 7)
+      return date
+    }
+    
+    return today
+  }
+
   useEffect(() => {
     const token = localStorage.getItem('otto_token')
     if (!token) {
@@ -79,9 +112,7 @@ export default function RestaurantDetailPage() {
   const calendarDays = []
   const daysInMonth = getDaysInMonth(calendarMonth)
   const firstDay = getFirstDayOfMonth(calendarMonth)
-  const today = new Date()
-  const earliestDate = new Date(today)
-  earliestDate.setDate(earliestDate.getDate() + 30) // 30 days advance for daily releases
+  const earliestDate = getEarliestAvailableDate()
 
   // Fill in empty cells before month starts
   for (let i = 0; i < firstDay; i++) {
@@ -202,6 +233,8 @@ export default function RestaurantDetailPage() {
             <p className="text-sm text-gray-500 mt-1">
               {restaurant.release_pattern === 'unknown' ? (
                 '🔍 Release pattern not set'
+              ) : restaurant.release_pattern === 'manual' ? (
+                '📅 Manual booking — select any available date'
               ) : (
                 <>
                   {restaurant.release_pattern} @ {restaurant.release_time ? format12Hour(restaurant.release_time) : '—'} ET
@@ -221,7 +254,7 @@ export default function RestaurantDetailPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Warning if release pattern unknown */}
-        {restaurant && (!restaurant.release_pattern || restaurant.release_pattern === 'unknown') && (
+        {restaurant && restaurant.release_pattern === 'unknown' && (
           <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-amber-900 font-medium mb-2">📋 Release Pattern Not Set</p>
             <p className="text-sm text-amber-800 mb-3">
@@ -239,7 +272,7 @@ export default function RestaurantDetailPage() {
         <div className="mb-6">
           <button
             onClick={() => setShowForm(!showForm)}
-            disabled={!restaurant || !restaurant.release_pattern || restaurant.release_pattern === 'unknown'}
+            disabled={!restaurant || restaurant.release_pattern === 'unknown'}
             className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg font-medium transition"
           >
             + Add Booking Preference
@@ -255,7 +288,11 @@ export default function RestaurantDetailPage() {
                 {editingId ? '✏️ Edit Preference' : '➕ Add New Preference'}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Earliest available: <strong>{earliestDate.toLocaleDateString()}</strong>
+                {restaurant && restaurant.release_pattern === 'manual' ? (
+                  <>Release: <strong>Manual</strong> — select any date you want</>
+                ) : (
+                  <>Earliest available: <strong>{getEarliestAvailableDate().toLocaleDateString()}</strong></>
+                )}
               </p>
 
               <div className="border rounded-lg p-4">

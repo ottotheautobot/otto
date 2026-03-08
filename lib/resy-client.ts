@@ -29,25 +29,28 @@ export class ResyClient {
 
   async findAvailability(venueId: string, date: string, partySize: number) {
     try {
-      const response = await fetch(
-        `${RESY_API_BASE}/venue/${venueId}/availability?date=${date}&party_size=${partySize}`,
-        {
-          method: 'GET',
-          headers: {
-            'authorization': `Bearer ${this.apiKey}`,
-            'x-resy-auth-token': this.authToken,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const url = `${RESY_API_BASE}/venue/${venueId}/availability?date=${date}&party_size=${partySize}`
+      console.log('[Resy] Calling:', url)
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'authorization': `Bearer ${this.apiKey}`,
+          'x-resy-auth-token': this.authToken,
+          'Content-Type': 'application/json',
+        },
+      })
 
+      console.log('[Resy] Response status:', response.status)
+      
       if (response.status === 429) {
         throw new Error('RATE_LIMITED')
       }
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(`Resy API Error: ${error.message || response.statusText}`)
+        const text = await response.text()
+        console.error('[Resy] Error response:', text.substring(0, 200))
+        throw new Error(`Resy API Error (${response.status}): ${text.substring(0, 100)}`)
       }
 
       const data = await response.json()

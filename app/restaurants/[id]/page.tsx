@@ -9,6 +9,7 @@ export default function RestaurantDetailPage() {
   const [preferences, setPreferences] = useState<BookingPreference[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set())
   const [formData, setFormData] = useState({
     party_size: 2,
@@ -91,7 +92,19 @@ export default function RestaurantDetailPage() {
     calendarDays.push(day)
   }
 
-  async function handleAddPreference(e: React.FormEvent) {
+  function startEdit(pref: BookingPreference) {
+    setEditingId(pref.id)
+    setFormData({
+      party_size: pref.party_size || 2,
+      preferred_times: pref.preferred_times as any,
+      priority: pref.priority || 5,
+      notes: pref.notes || '',
+    })
+    setSelectedDates(new Set(pref.target_dates || []))
+    setShowForm(true)
+  }
+
+  async function handleSavePreference(e: React.FormEvent) {
     e.preventDefault()
 
     if (selectedDates.size === 0) {
@@ -100,8 +113,11 @@ export default function RestaurantDetailPage() {
     }
 
     try {
-      const response = await fetch('/api/preferences', {
-        method: 'POST',
+      const method = editingId ? 'PATCH' : 'POST'
+      const url = editingId ? `/api/preferences/${editingId}` : '/api/preferences'
+      
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           restaurant_id: restaurantId,
@@ -115,12 +131,13 @@ export default function RestaurantDetailPage() {
 
       if (!response.ok) {
         const error = await response.json()
-        alert(error.error || 'Error adding preference')
+        alert(error.error || 'Error saving preference')
         return
       }
 
       await loadData()
       setShowForm(false)
+      setEditingId(null)
       setSelectedDates(new Set())
       setFormData({
         party_size: 2,
@@ -129,8 +146,45 @@ export default function RestaurantDetailPage() {
         notes: '',
       })
     } catch (error) {
-      console.error('Error adding preference:', error)
-      alert('Error adding preference')
+      console.error('Error saving preference:', error)
+      alert('Error saving preference')
+    }
+  }
+
+  async function handleDeletePreference(prefId: string) {
+    if (!confirm('Delete this preference?')) return
+
+    try {
+      const response = await fetch(`/api/preferences/${prefId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Delete failed')
+
+      await loadData()
+    } catch (error) {
+      console.error('Error deleting preference:', error)
+      alert('Error deleting preference')
+    }
+  }
+
+  async function handleToggleActive(pref: BookingPreference) {
+    try {
+      const response = await fetch(`/api/preferences/${pref.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pref,
+          active: !pref.active,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Toggle failed')
+
+      await loadData()
+    } catch (error) {
+      console.error('Error toggling preference:', error)
+      alert('Error toggling preference')
     }
   }
 
@@ -169,10 +223,12 @@ export default function RestaurantDetailPage() {
 
         {/* Form with Calendar */}
         {showForm && (
-          <div className="bg-white p-6 rounded-lg shadow mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white p-6 rounded-lg shadow mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8 border-l-4 border-indigo-600">
             {/* Calendar */}
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Select Dates</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">
+                {editingId ? '✏️ Edit Preference' : '➕ Add New Preference'}
+              </h3>
               <p className="text-sm text-gray-600 mb-4">
                 Earliest available: <strong>{earliestDate.toLocaleDateString()}</strong>
               </p>
@@ -261,7 +317,7 @@ export default function RestaurantDetailPage() {
             {/* Preference Settings */}
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-4">Booking Details</h3>
-              <form onSubmit={handleAddPreference} className="space-y-4">
+              <form onSubmit={handleSavePreference} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Party Size
@@ -354,11 +410,21 @@ export default function RestaurantDetailPage() {
                     disabled={selectedDates.size === 0}
                     className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg font-medium"
                   >
-                    Add Preference
+                    {editingId ? 'Update Preference' : 'Add Preference'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => {
+                      setShowForm(false)
+                      setEditingId(null)
+                      setSelectedDates(new Set())
+                      setFormData({
+                        party_size: 2,
+                        preferred_times: { start: '19:00', end: '21:30' },
+                        priority: 5,
+                        notes: '',
+                      })
+                    }}
                     className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg font-medium"
                   >
                     Cancel
@@ -421,15 +487,33 @@ export default function RestaurantDetailPage() {
                     </div>
                   )}
 
-                  <div className="mt-3 flex items-center justify-between">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        pref.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {pref.active ? 'Active' : 'Inactive'}
-                    </span>
-                    {pref.notes && <p className="text-xs text-gray-500 italic">{pref.notes}</p>}
+                  <div className="mt-3 pt-3 border-t flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleToggleActive(pref)}
+                        className={`px-2 py-1 rounded text-xs font-medium transition ${
+                          pref.active
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                        }`}
+                      >
+                        {pref.active ? '✓ Active' : '○ Inactive'}
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEdit(pref)}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeletePreference(pref.id)}
+                        className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

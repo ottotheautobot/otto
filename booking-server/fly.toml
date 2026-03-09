@@ -6,9 +6,7 @@ primary_region = "iad"
   dockerfile = "Dockerfile"
 
 [env]
-  # Generate a random token and set it here:
-  AUTH_TOKEN = "your-secure-token-here"
-  # Set this to your Resy cookies JSON (see deployment instructions)
+  AUTH_TOKEN = "7f04b1c90f92a9dc30c9cdda557a89c783896ee122c1a7361c77f48024003648"
   RESY_COOKIES = "[]"
 
 [http_service]

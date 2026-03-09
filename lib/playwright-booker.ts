@@ -1,4 +1,4 @@
-import { chromium, Browser, Page } from 'playwright'
+import { chromium, Browser, Page, BrowserContext } from 'playwright'
 
 interface BookingRequest {
   venueId: string
@@ -14,6 +14,7 @@ interface BookingResult {
   success: boolean
   reservationId?: string
   resyToken?: string
+  bookToken?: string
   error?: string
 }
 
@@ -22,7 +23,7 @@ export class PlaywrightBooker {
 
   async initialize() {
     this.browser = await chromium.launch({
-      headless: true,
+      headless: false, // Show browser for manual login
     })
   }
 
@@ -41,74 +42,88 @@ export class PlaywrightBooker {
     let bookingResult: BookingResult = { success: false }
 
     try {
-      // Intercept the /3/book request to capture booking details
+      // Intercept /3/book response to capture booking confirmation
       page.on('response', async (response) => {
-        if (response.url().includes('/3/book')) {
-          if (response.status() === 200) {
-            try {
-              const data = await response.json()
-              if (data.resy_token && data.reservation_id) {
-                bookingResult = {
-                  success: true,
-                  resyToken: data.resy_token,
-                  reservationId: String(data.reservation_id),
-                }
+        if (response.url().includes('/3/book') && response.status() === 201) {
+          try {
+            const data = await response.json()
+            if (data.reservation_id) {
+              bookingResult = {
+                success: true,
+                resyToken: data.resy_token,
+                reservationId: String(data.reservation_id),
               }
-            } catch (e) {
-              // Ignore JSON parse errors
+              console.log(`✅ Booking confirmed! Reservation ID: ${data.reservation_id}`)
             }
+          } catch (e) {
+            console.error('Could not parse booking response:', e)
           }
         }
       })
 
       // Navigate to venue page
       const venueUrl = `https://resy.com/cities/new-york-ny/venues/holywater?date=${req.date}`
-      await page.goto(venueUrl, { waitUntil: 'networkidle' })
+      console.log(`Navigating to ${venueUrl}`)
+      await page.goto(venueUrl, { waitUntil: 'networkidle', timeout: 60000 })
 
-      // Wait for availability to load
-      await page.waitForSelector('[data-time-slot]', { timeout: 10000 }).catch(() => null)
+      console.log('Page loaded. Waiting for you to select a time slot...')
+      await page.waitForTimeout(3000)
 
-      // Find and click the matching time slot
-      const timeSlots = await page.locator('[data-time-slot]').all()
-      let slotFound = false
+      // Look for time slot buttons
+      const timeSlots = await page.locator('button[aria-label*=":"]').all()
+      console.log(`Found ${timeSlots.length} time slots`)
 
-      for (const slot of timeSlots) {
-        const slotText = await slot.textContent()
-        if (slotText?.includes(req.timeSlot)) {
-          await slot.click()
-          slotFound = true
-          break
+      if (timeSlots.length > 0) {
+        const slotText = await timeSlots[0].textContent()
+        console.log(`Clicking time slot: ${slotText}`)
+        await timeSlots[0].click()
+        await page.waitForTimeout(1500)
+      }
+
+      // Fill in guest details
+      console.log('Filling guest information...')
+      await page.fill('input[placeholder*="First"]', req.firstName).catch(() => {
+        console.log('Could not fill first name')
+      })
+      await page.fill('input[placeholder*="Last"]', req.lastName).catch(() => {
+        console.log('Could not fill last name')
+      })
+      await page.fill('input[placeholder*="Email"], input[type="email"]', req.email).catch(() => {
+        console.log('Could not fill email')
+      })
+
+      await page.waitForTimeout(1000)
+
+      // Find and click Reserve button
+      console.log('Looking for Reserve button...')
+      const buttons = await page.locator('button').all()
+      let reserveClicked = false
+
+      for (const button of buttons) {
+        try {
+          const text = await button.textContent()
+          if (text?.includes('Reserve') || text?.includes('Book') || text?.includes('Confirm')) {
+            console.log(`Clicking: ${text}`)
+            await button.click()
+            reserveClicked = true
+            break
+          }
+        } catch (e) {
+          // Skip
         }
       }
 
-      if (!slotFound) {
-        return { success: false, error: `Time slot ${req.timeSlot} not found` }
+      if (!reserveClicked) {
+        console.log('⚠️ Could not find Reserve button')
       }
 
-      // Wait for party size confirmation (if needed)
-      await page.waitForTimeout(500)
+      // Wait for booking response
+      console.log('Waiting for booking confirmation...')
+      await page.waitForTimeout(5000)
 
-      // Fill in guest details
-      await page.fill('input[placeholder*="First"]', req.firstName).catch(() => null)
-      await page.fill('input[placeholder*="Last"]', req.lastName).catch(() => null)
-      await page.fill('input[placeholder*="Email"]', req.email).catch(() => null)
-
-      // Click reserve/confirm button
-      const reserveButton = await page
-        .locator('button:has-text("Reserve"), button:has-text("Confirm"), button:has-text("Book")')
-        .first()
-
-      if (reserveButton) {
-        await reserveButton.click()
-
-        // Wait for booking confirmation
-        await page.waitForTimeout(2000)
-      }
-
-      return bookingResult.success
-        ? bookingResult
-        : { success: false, error: 'Booking failed or confirmation not received' }
+      return bookingResult
     } catch (error) {
+      console.error('Booking error:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

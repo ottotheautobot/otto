@@ -1,4 +1,5 @@
-const RESY_API_BASE = 'https://api.resy.com/3'
+const RESY_API_V3 = 'https://api.resy.com/3'
+const RESY_API_V4 = 'https://api.resy.com/4'
 
 interface ResyAvailability {
   date: string
@@ -29,7 +30,7 @@ export class ResyClient {
 
   async findAvailability(venueId: string, date: string, partySize: number) {
     try {
-      const url = `${RESY_API_BASE}/find`
+      const url = `${RESY_API_V4}/find`
       
       const response = await fetch(url, {
         method: 'POST',
@@ -88,7 +89,7 @@ export class ResyClient {
     guestLastName: string
   ) {
     try {
-      const response = await fetch(`${RESY_API_BASE}/booking`, {
+      const response = await fetch(`${RESY_API_V3}/book`, {
         method: 'POST',
         headers: {
           'authorization': `Bearer ${this.apiKey}`,

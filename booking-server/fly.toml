@@ -1,0 +1,30 @@
+# Fly.io config for Resy booking server
+app = "resy-booking-server"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Generate a random token and set it here:
+  AUTH_TOKEN = "your-secure-token-here"
+  # Set this to your Resy cookies JSON (see deployment instructions)
+  RESY_COOKIES = "[]"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 3000
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]

@@ -1,6 +1,8 @@
 import { supabase, Restaurant, BookingPreference } from './supabase'
 import { ResyClient } from './resy-client'
-import { PlaywrightBooker } from './playwright-booker'
+
+const BOOKING_SERVER_URL = process.env.BOOKING_SERVER_URL || 'http://localhost:3000'
+const BOOKING_SERVER_TOKEN = process.env.BOOKING_SERVER_TOKEN || 'test-token'
 
 const RESY_API_KEY = process.env.RESY_API_KEY!
 const RESY_AUTH_TOKEN = process.env.RESY_AUTH_TOKEN!
@@ -105,34 +107,39 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
               continue
             }
 
-            // Found availability! Use Playwright to automate booking
-            const booker = new PlaywrightBooker()
-            await booker.initialize()
-
-            // Extract time from notify_options
+            // Found availability! Call booking service
             const notifyOpt = availability.slots[0]
             const minTime = notifyOpt.min_time // Format: "2026-03-17 16:30:00"
             const timeMatch = minTime.match(/(\d{2}):(\d{2}):00/)
             const timeSlot = timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : '19:00'
 
-            const bookingResult = await booker.bookReservation({
-              venueId: restaurant.resy_venue_id,
-              date: targetDate,
-              partySize: pref.party_size,
-              timeSlot: timeSlot,
-              firstName: 'Guest',
-              lastName: 'User',
-              email: 'guest@example.com', // Placeholder
+            console.log(`Calling booking service at ${BOOKING_SERVER_URL}`)
+
+            const bookingResponse = await fetch(`${BOOKING_SERVER_URL}/book`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                token: BOOKING_SERVER_TOKEN,
+                venue_id: restaurant.resy_venue_id,
+                date: targetDate,
+                party_size: pref.party_size,
+                time_slot: timeSlot,
+                first_name: 'Guest',
+                last_name: 'User',
+                email: 'guest@example.com',
+              }),
             })
 
-            await booker.close()
+            const bookingData = await bookingResponse.json()
 
-            if (bookingResult.success && bookingResult.reservationId) {
+            if (bookingData.success && bookingData.reservation_id) {
               // Success!
               await supabase.from('booked_confirmations').insert({
                 restaurant_id: restaurant.id,
                 booking_preference_id: pref.id,
-                resy_booking_id: bookingResult.reservationId,
+                resy_booking_id: bookingData.reservation_id,
                 booked_date: targetDate,
                 booked_time: timeSlot,
                 party_size: pref.party_size,
@@ -146,7 +153,7 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 target_date: targetDate,
                 target_time: timeSlot,
                 status: 'success',
-                details: { bookingId: bookingResult.reservationId },
+                details: { bookingId: bookingData.reservation_id },
               })
 
               attempts.push({
@@ -156,7 +163,7 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 time: timeSlot,
                 partySize: pref.party_size,
                 success: true,
-                message: `Booked at ${timeSlot}!`,
+                message: `Booked! Confirmation #${bookingData.reservation_id}`,
               })
             } else {
               attempts.push({
@@ -166,7 +173,7 @@ export async function runBookingScheduler(): Promise<BookingAttempt[]> {
                 time: timeSlot,
                 partySize: pref.party_size,
                 success: false,
-                message: bookingResult.error || 'Booking failed',
+                message: bookingData.error || 'Booking failed',
               })
             }
           } catch (error: any) {

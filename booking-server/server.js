@@ -113,6 +113,101 @@ app.post('/book', async (req, res) => {
 });
 
 /**
+ * GET /inspect
+ * Inspects Resy.com HolyWater availability and captures network requests
+ */
+app.get('/inspect', async (req, res) => {
+  let browser = null;
+  try {
+    console.log('[INSPECT] Starting Resy inspection for HolyWater...');
+
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+
+    const requests = [];
+
+    // Capture all api.resy.com requests
+    page.on('request', (request) => {
+      if (request.url().includes('api.resy.com')) {
+        requests.push({
+          method: request.method(),
+          url: request.url(),
+          headers: request.headers(),
+          postData: request.postData(),
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+
+    page.on('response', async (response) => {
+      if (response.url().includes('api.resy.com')) {
+        const lastRequest = requests[requests.length - 1];
+        if (lastRequest) {
+          try {
+            lastRequest.responseStatus = response.status();
+            lastRequest.responseHeaders = response.headers();
+            const text = await response.text();
+            lastRequest.responseBody = text.substring(0, 2000); // First 2000 chars
+          } catch (e) {
+            lastRequest.responseError = e.message;
+          }
+        }
+      }
+    });
+
+    console.log('[INSPECT] Loading Resy.com...');
+    await page.goto('https://resy.com', { waitUntil: 'networkidle', timeout: 30000 });
+
+    console.log('[INSPECT] Navigating to HolyWater...');
+    await page.goto('https://resy.com/cities/new-york-ny/venues/holywater', { 
+      waitUntil: 'networkidle', 
+      timeout: 30000 
+    });
+
+    await page.waitForTimeout(2000);
+
+    console.log('[INSPECT] Looking for available dates...');
+    const dateButtons = await page.locator('[aria-label*="2026"]').all();
+    console.log(`[INSPECT] Found ${dateButtons.length} date buttons`);
+
+    if (dateButtons.length > 0) {
+      await dateButtons[0].click();
+      await page.waitForTimeout(1500);
+    }
+
+    console.log('[INSPECT] Looking for time slots...');
+    const timeSlots = await page.locator('button:has-text("PM"), button:has-text("AM")').all();
+    console.log(`[INSPECT] Found ${timeSlots.length} time slots`);
+
+    if (timeSlots.length > 0) {
+      await timeSlots[0].click();
+      await page.waitForTimeout(1500);
+    }
+
+    console.log(`[INSPECT] Captured ${requests.length} API requests`);
+    await page.close();
+
+    res.json({
+      status: 'success',
+      requestsCount: requests.length,
+      requests: requests,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[INSPECT] Error:', error);
+    res.status(500).json({ 
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+});
+
+/**
  * GET /health
  */
 app.get('/health', (req, res) => {
